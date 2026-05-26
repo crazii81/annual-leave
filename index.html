@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>연간 휴가 플래너</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #F0EEE9;
+  --surface:   #FFFFFF;
+  --surface2:  #E8E5DF;
+  --border:    #D8D4CC;
+  --border2:   #BDB9B0;
+  --text:      #16140D;
+  --text2:     #64615A;
+  --text3:     #A8A59E;
+  --accent:    #2557A7;
+  --accent-bg: #EAF0FB;
+
+  --c-kr:       #6B52D4; --c-kr-bg: #EFEAFA; --c-kr-text: #2E1A8C;
+  --c-au:       #1A8A62; --c-au-bg: #E4F4EE; --c-au-text: #0A4030;
+  --c-term:     #B07818; --c-term-bg: #FBF3E0; --c-term-text: #5C3C00;
+
+  --leave:      #D63B1F; --leave-bg: #FEF1EE; --leave-txt: #7A1F0D;
+  --wfh:        #1E8049; --wfh-bg:   #E6F5ED; --wfh-txt:   #0C4025;
+  --ye:         #7A7A78; --ye-bg:    #F0EFED; --ye-txt:    #3A3A38;
+  --loan:       #1A5DB0; --loan-bg:  #E8F0FB; --loan-txt:  #0D2F6B;
+  --trip:       #7B3FC4; --trip-bg:  #F2ECFB; --trip-txt:  #3A1272;
+
+  --r: 12px; --rsm: 7px;
+  --sh: 0 1px 2px rgba(0,0,0,.05), 0 3px 10px rgba(0,0,0,.04);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', 'Noto Sans KR', sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
+}
+
+/* ── Tab Nav ── */
+.tab-nav {
+  display: flex; align-items: center; gap: 0;
+  background: var(--surface); border-bottom: 1.5px solid var(--border);
+  padding: 0 24px; position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.tab-logo {
+  display: flex; align-items: center; gap: 9px;
+  padding: 14px 20px 14px 0; margin-right: 12px;
+  border-right: 1.5px solid var(--border);
+}
+.tab-logo-icon {
+  width: 28px; height: 28px; background: var(--accent);
+  border-radius: 7px; display: flex; align-items: center; justify-content: center;
+}
+.tab-logo-icon svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tab-logo-name { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -.2px; }
+
+.tab-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 14px 16px; font-size: 13px; font-weight: 500;
+  color: var(--text2); cursor: pointer; border: none; background: none;
+  font-family: inherit; border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px; transition: all .15s; white-space: nowrap;
+}
+.tab-btn:hover { color: var(--accent); }
+.tab-btn.on { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.tab-right {
+  margin-left: auto; display: flex; align-items: center; gap: 12px;
+  padding: 0 0 0 16px;
+}
+.save-status { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text3); }
+.sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); flex-shrink: 0; transition: background .3s; }
+.sdot.saving { background: #C4830A; }
+.sdot.saved  { background: #1E8049; }
+.sdot.error  { background: #D63B1F; }
+
+.year-nav { display: flex; align-items: center; gap: 3px; }
+.ybtn {
+  width: 28px; height: 28px; border: 1.5px solid var(--border2);
+  border-radius: 6px; background: var(--bg); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2); transition: all .15s;
+}
+.ybtn:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+.ybtn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.year-num { font-size: 15px; font-weight: 600; min-width: 46px; text-align: center; letter-spacing: -.4px; }
+
+/* ── Pages ── */
+.page { display: none; padding: 28px 24px; max-width: 1160px; margin: 0 auto; }
+.page.on { display: block; }
+
+/* ── Balance Cards ── */
+.bal-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 10px; margin-bottom: 22px;
+}
+.bal-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 14px 15px 13px; box-shadow: var(--sh);
+}
+.bal-card.hi { border-color: var(--accent); background: var(--accent-bg); }
+.bal-lbl { font-size: 9.5px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 5px; }
+.bal-num { font-size: 28px; font-weight: 600; line-height: 1; letter-spacing: -1.5px; }
+.bal-num.g  { color: #1E8049; } .bal-num.a { color: #C4830A; } .bal-num.r { color: var(--leave); }
+.bal-num.b  { color: var(--accent); } .bal-num.gr { color: var(--ye); }
+.bal-num.lb { color: var(--loan); } .bal-num.kr { color: var(--c-kr); }
+.bal-hint { font-size: 9.5px; color: var(--text3); margin-top: 4px; }
+
+/* ── Mode Bar ── */
+.mode-bar { display: flex; gap: 6px; margin-bottom: 11px; flex-wrap: wrap; }
+.mbtn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 13px; border: 1.5px solid var(--border2); border-radius: 20px;
+  cursor: pointer; font-size: 12px; font-weight: 500;
+  background: var(--surface); color: var(--text2);
+  transition: all .15s; font-family: inherit;
+}
+.mbtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.mbtn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+.tip {
+  font-size: 11.5px; color: var(--text2); margin-bottom: 16px;
+  padding: 8px 12px; background: var(--accent-bg);
+  border-left: 3px solid var(--accent); border-radius: var(--rsm);
+}
+
+/* ── Legend ── */
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; align-items: center; }
+.li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.bar-sw { width: 16px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+.dot-sw { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid; }
+.sep { width: 1px; height: 12px; background: var(--border2); }
+
+/* ── Calendar ── */
+.cal-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(192px, 1fr));
+  gap: 11px;
+}
+.month-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--r); overflow: hidden; box-shadow: var(--sh);
+}
+.month-top { border-bottom: 1.5px solid var(--border); }
+.month-name {
+  padding: 8px 12px 6px; font-size: 12.5px; font-weight: 600;
+  background: var(--surface2); letter-spacing: -.1px; color: var(--text);
+}
+.month-note-row { background: var(--surface2); padding: 4px 8px 7px; }
+.month-note {
+  width: 100%; font-size: 10px; font-family: inherit; color: var(--text2);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 4px 7px; resize: none;
+  outline: none; line-height: 1.4; min-height: 28px;
+  transition: border-color .15s;
+}
+.month-note::placeholder { color: var(--text3); }
+.month-note:focus { border-color: var(--accent); }
+
+.dh { display: grid; grid-template-columns: repeat(7,1fr); padding: 5px 8px 1px; }
+.dl { font-size: 8.5px; color: var(--text3); text-align: center; font-weight: 500; }
+.dg { display: grid; grid-template-columns: repeat(7,1fr); padding: 2px 8px 8px; gap: 2px; }
+
+.dc {
+  aspect-ratio: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end; padding-bottom: 3px;
+  font-size: 11px; border-radius: 5px; cursor: pointer; user-select: none;
+  position: relative; overflow: hidden; transition: filter .1s;
+}
+.dc:hover:not(.x):not(.nc) { filter: brightness(.94); }
+.dc.x  { cursor: default; } .dc.nc { cursor: default; }
+.dc.ph-kr   { background: var(--c-kr-bg);   color: var(--c-kr-text);   font-weight: 500; }
+.dc.ph-au   { background: var(--c-au-bg);   color: var(--c-au-text);   font-weight: 500; }
+.dc.term    { background: var(--c-term-bg); color: var(--c-term-text); }
+.dc.wk      { color: var(--text3); }
+.dc.act-leave { background: var(--leave-bg); color: var(--leave-txt); font-weight: 600; }
+.dc.act-wfh   { background: var(--wfh-bg);   color: var(--wfh-txt);   font-weight: 600; }
+.dc.act-ye    { background: var(--ye-bg);    color: var(--ye-txt);    font-weight: 600; }
+.dc.act-loan  { background: var(--loan-bg);  color: var(--loan-txt);  font-weight: 600; }
+.dc.today .dn {
+  background: var(--accent); color: #fff; border-radius: 50%;
+  width: 17px; height: 17px; display: flex; align-items: center;
+  justify-content: center; font-size: 10px;
+}
+.abar { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.dn   { position: relative; z-index: 1; }
+
+/* ── Loading ── */
+.loading-overlay {
+  position: fixed; inset: 0; background: rgba(240,238,233,.9);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; z-index: 999; gap: 12px;
+}
+.loading-overlay.hidden { display: none; }
+.spinner {
+  width: 32px; height: 32px; border: 3px solid var(--border2);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt { font-size: 13px; color: var(--text2); }
+
+/* ── Tooltip ── */
+.tt {
+  position: fixed; background: #111; color: #fff;
+  padding: 5px 9px; border-radius: 6px; font-size: 11px;
+  pointer-events: none; z-index: 9999; white-space: nowrap; display: none;
+}
+.tt::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%); border: 4px solid transparent;
+  border-top-color: #111;
+}
+
+/* ── Summary Page ── */
+.sec-hd {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--text2); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 7px;
+}
+.sec-hd svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.divider { height: 1.5px; background: var(--border); margin: 24px 0; }
+
+/* Trip planner */
+.trip-planner { margin-bottom: 8px; }
+.trip-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 80px 1fr 36px;
+  gap: 8px; padding: 0 0 6px;
+  font-size: 10.5px; font-weight: 600; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .5px;
+  border-bottom: 1.5px solid var(--border); margin-bottom: 6px;
+}
+.trip-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 80px 1fr 36px;
+  gap: 8px; margin-bottom: 6px; align-items: center;
+}
+.trip-input {
+  width: 100%; padding: 7px 10px; font-size: 12.5px; font-family: inherit;
+  border: 1.5px solid var(--border); border-radius: var(--rsm);
+  background: var(--surface); color: var(--text); outline: none;
+  transition: border-color .15s;
+}
+.trip-input:focus { border-color: var(--accent); }
+.trip-nights {
+  display: flex; align-items: center; justify-content: center;
+  height: 34px; background: var(--trip-bg); border-radius: var(--rsm);
+  font-size: 13px; font-weight: 600; color: var(--trip-txt);
+  border: 1.5px solid #D4B8F0;
+}
+.trip-nights.empty { background: var(--surface2); color: var(--text3); border-color: var(--border); font-weight: 400; font-size: 11px; }
+.del-row-btn {
+  width: 32px; height: 32px; background: none; border: 1.5px solid var(--border);
+  border-radius: var(--rsm); cursor: pointer; display: flex; align-items: center;
+  justify-content: center; color: var(--text3); transition: all .15s; flex-shrink: 0;
+}
+.del-row-btn:hover { background: var(--leave-bg); border-color: var(--leave); color: var(--leave); }
+.del-row-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.add-row-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border: 1.5px dashed var(--border2);
+  border-radius: var(--rsm); background: none; cursor: pointer;
+  font-size: 12px; font-weight: 500; color: var(--text2);
+  font-family: inherit; transition: all .15s; margin-top: 4px;
+}
+.add-row-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.add-row-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.trip-total {
+  display: flex; align-items: center; gap: 10px; margin-top: 10px;
+  padding: 10px 14px; background: var(--trip-bg);
+  border: 1.5px solid #D4B8F0; border-radius: var(--rsm);
+  font-size: 13px;
+}
+.trip-total strong { color: var(--trip-txt); font-size: 20px; font-weight: 600; letter-spacing: -1px; margin-left: auto; }
+
+/* Summary lists */
+.sum-list { display: flex; flex-direction: column; gap: 5px; }
+.sum-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 13px; background: var(--surface);
+  border: 1.5px solid var(--border); border-radius: var(--rsm);
+  font-size: 12.5px; box-shadow: var(--sh);
+}
+.sum-l { display: flex; align-items: center; gap: 9px; }
+.bdg { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+.bdg.leave { background: var(--leave-bg); color: var(--leave-txt); }
+.bdg.wfh   { background: var(--wfh-bg);   color: var(--wfh-txt);   }
+.bdg.ye    { background: var(--ye-bg);    color: var(--ye-txt);    }
+.bdg.loan  { background: var(--loan-bg);  color: var(--loan-txt);  }
+.sum-cnt { font-size: 11px; color: var(--text2); font-weight: 500; }
+.xbtn {
+  background: none; border: none; cursor: pointer; color: var(--text3);
+  font-size: 17px; line-height: 1; padding: 0 2px; transition: color .1s;
+}
+.xbtn:hover { color: var(--leave); }
+.empty { color: var(--text3); font-size: 12.5px; font-style: italic; padding: 12px 0; }
+
+/* stat row on summary */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 10px; margin-bottom: 22px; }
+.stat-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--r); padding: 13px 15px; box-shadow: var(--sh); }
+.stat-lbl { font-size: 9.5px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 4px; }
+.stat-num { font-size: 24px; font-weight: 600; line-height: 1; letter-spacing: -1px; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-txt">데이터 불러오는 중...</div>
+</div>
+
+<!-- Tab Nav -->
+<nav class="tab-nav">
+  <div class="tab-logo">
+    <div class="tab-logo-icon">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    </div>
+    <span class="tab-logo-name">휴가 플래너</span>
+  </div>
+  <button class="tab-btn on" id="tab-cal" onclick="showTab('cal')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    캘린더
+  </button>
+  <button class="tab-btn" id="tab-sum" onclick="showTab('sum')">
+    <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    일정 요약
+  </button>
+  <div class="tab-right">
+    <div class="save-status">
+      <div class="sdot" id="sdot"></div>
+      <span id="stxt">연결 중...</span>
+    </div>
+    <div class="year-nav">
+      <button class="ybtn" onclick="changeYear(-1)"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="year-num" id="yearLabel">2025</div>
+      <button class="ybtn" onclick="changeYear(1)"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+</nav>
+
+<!-- Calendar Page -->
+<div class="page on" id="page-cal">
+
+  <div class="bal-grid">
+    <div class="bal-card hi"><div class="bal-lbl">총 연차</div><div class="bal-num b">25</div><div class="bal-hint">days / year</div></div>
+    <div class="bal-card"><div class="bal-lbl">사용 연차</div><div class="bal-num a" id="usedL">0</div><div class="bal-hint">used</div></div>
+    <div class="bal-card"><div class="bal-lbl">잔여 연차</div><div class="bal-num g" id="remL">25</div><div class="bal-hint">remaining</div></div>
+    <div class="bal-card"><div class="bal-lbl">재택근무</div><div class="bal-num b" id="wfhC">0</div><div class="bal-hint">WFH days</div></div>
+    <div class="bal-card"><div class="bal-lbl">연말 휴가</div><div class="bal-num gr" id="yeC">0</div><div class="bal-hint">year-end</div></div>
+    <div class="bal-card"><div class="bal-lbl">대출</div><div class="bal-num lb" id="loanC">0</div><div class="bal-hint">loan days</div></div>
+    <div class="bal-card"><div class="bal-lbl">대체공휴일</div><div class="bal-num kr" id="subC">0</div><div class="bal-hint">substitute</div></div>
+  </div>
+
+  <div class="mode-bar">
+    <button class="mbtn on" id="btn-leave" onclick="setMode('leave')"><span class="mdot" style="background:var(--leave)"></span>연차</button>
+    <button class="mbtn"    id="btn-wfh"   onclick="setMode('wfh')"><span class="mdot" style="background:var(--wfh)"></span>재택근무</button>
+    <button class="mbtn"    id="btn-ye"    onclick="setMode('ye')"><span class="mdot" style="background:var(--ye)"></span>연말 휴가</button>
+    <button class="mbtn"    id="btn-loan"  onclick="setMode('loan')"><span class="mdot" style="background:var(--loan)"></span>대출</button>
+    <button class="mbtn"    id="btn-clear" onclick="setMode('clear')"><span class="mdot" style="background:var(--text3)"></span>취소</button>
+  </div>
+  <div class="tip" id="tipTxt">💡 날짜를 클릭해서 연차를 표시하세요. 한국 공휴일과 주말은 선택할 수 없습니다.</div>
+
+  <div class="legend">
+    <div class="li"><div class="bar-sw" style="background:var(--leave)"></div>연차</div>
+    <div class="li"><div class="bar-sw" style="background:var(--wfh)"></div>재택근무</div>
+    <div class="li"><div class="bar-sw" style="background:var(--ye)"></div>연말 휴가</div>
+    <div class="li"><div class="bar-sw" style="background:var(--loan)"></div>대출</div>
+    <div class="sep"></div>
+    <div class="li"><div class="dot-sw" style="background:var(--c-kr-bg);border-color:var(--c-kr)"></div>한국 공휴일</div>
+    <div class="li"><div class="dot-sw" style="background:var(--c-au-bg);border-color:var(--c-au)"></div>호주 공휴일</div>
+    <div class="li"><div class="dot-sw" style="background:var(--c-term-bg);border-color:var(--c-term)"></div>QLD 학교 방학</div>
+  </div>
+
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+
+<!-- Summary Page -->
+<div class="page" id="page-sum">
+
+  <!-- Stats -->
+  <div class="stat-row">
+    <div class="stat-card"><div class="stat-lbl">사용 연차</div><div class="stat-num" style="color:var(--leave)" id="s-leave">0</div></div>
+    <div class="stat-card"><div class="stat-lbl">잔여 연차</div><div class="stat-num" style="color:#1E8049" id="s-rem">25</div></div>
+    <div class="stat-card"><div class="stat-lbl">재택근무</div><div class="stat-num" style="color:var(--accent)" id="s-wfh">0</div></div>
+    <div class="stat-card"><div class="stat-lbl">연말 휴가</div><div class="stat-num" style="color:var(--ye)" id="s-ye">0</div></div>
+    <div class="stat-card"><div class="stat-lbl">대출</div><div class="stat-num" style="color:var(--loan)" id="s-loan">0</div></div>
+    <div class="stat-card"><div class="stat-lbl">호주 방문 총일수</div><div class="stat-num" style="color:var(--trip-txt)" id="s-trip">0</div></div>
+  </div>
+
+  <!-- Australia Trip Planner -->
+  <div class="sec-hd">
+    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    호주 방문 일정
+  </div>
+
+  <div class="trip-planner">
+    <div class="trip-header">
+      <div>한국 출발일</div>
+      <div>한국 귀국일</div>
+      <div style="text-align:center">총 기간</div>
+      <div>메모</div>
+      <div></div>
+    </div>
+    <div id="tripRows"></div>
+    <button class="add-row-btn" onclick="addTripRow()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      일정 추가
+    </button>
+    <div class="trip-total">
+      <span>호주 방문 총 일수</span>
+      <strong id="tripTotalDays">0일</strong>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Leave summary list -->
+  <div class="sec-hd">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    선택 날짜 목록
+  </div>
+  <div class="sum-list" id="sumList">
+    <div class="empty">아직 선택된 날짜가 없습니다.</div>
+  </div>
+
+</div>
+
+<div class="tt" id="tt"></div>
+
+<script type="module">
+import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCgYaPVUpmY_SwnjqwNO8Lm_F2SB7RI-n8",
+  authDomain:        "leave-planner-48f07.firebaseapp.com",
+  projectId:         "leave-planner-48f07",
+  storageBucket:     "leave-planner-48f07.firebasestorage.app",
+  messagingSenderId: "299741767720",
+  appId:             "1:299741767720:web:402de95d385bda31006d1d"
+};
+const db      = getFirestore(initializeApp(firebaseConfig));
+const DOC_REF = doc(db, "planner", "paul");
+
+/* ── State ── */
+const MO = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+const DY = ['일','월','화','수','목','금','토'];
+let yr = new Date().getFullYear(), mode = 'leave';
+let leaveMap={}, wfhMap={}, yeMap={}, loanMap={};
+let monthNotes = {};   // { "2025-01": "text", ... }
+let tripRows   = [];   // [{ depart, arrive, note }]
+let saveTimer  = null;
+
+/* ── Firebase ── */
+async function loadData() {
+  try {
+    const snap = await getDoc(DOC_REF);
+    if (snap.exists()) {
+      const d = snap.data();
+      leaveMap   = d.leave      || {};
+      wfhMap     = d.wfh        || {};
+      yeMap      = d.ye         || {};
+      loanMap    = d.loan       || {};
+      monthNotes = d.monthNotes || {};
+      tripRows   = d.tripRows   || [];
+    }
+    setStatus('saved','저장됨');
+  } catch(e) { setStatus('error','로드 실패'); }
+  document.getElementById('loadingOverlay').classList.add('hidden');
+  // ensure 6 default trip rows
+  while (tripRows.length < 6) tripRows.push({depart:'',arrive:'',note:''});
+  render();
+  renderTripRows();
+}
+
+async function saveData() {
+  setStatus('saving','저장 중...');
+  try {
+    await setDoc(DOC_REF, { leave:leaveMap, wfh:wfhMap, ye:yeMap, loan:loanMap, monthNotes, tripRows });
+    setStatus('saved','저장됨');
+  } catch(e) { setStatus('error','저장 실패'); }
+}
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveData, 900); }
+function setStatus(s,t) {
+  document.getElementById('sdot').className='sdot '+s;
+  document.getElementById('stxt').textContent=t;
+}
+
+/* ── Helpers ── */
+function fmt(d){return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`}
+function p(n){return String(n).padStart(2,'0')}
+function pd(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+function nightsBetween(a,b){
+  if(!a||!b)return null;
+  try{const da=pd(a),db=pd(b);const diff=Math.round((db-da)/86400000);return diff>0?diff:null;}catch{return null;}
+}
+
+/* ── Tab ── */
+window.showTab = t => {
+  ['cal','sum'].forEach(x=>{
+    document.getElementById('page-'+x).classList.toggle('on',x===t);
+    document.getElementById('tab-'+x).classList.toggle('on',x===t);
+  });
+  if(t==='sum'){ renderSummary(); renderTripRows(); }
+};
+
+/* ── QLD Term Breaks ── */
+function getTermBreaks(year){
+  const breaks={};
+  const data={
+    2024:[['2024-03-30','2024-04-14'],['2024-06-22','2024-07-07'],['2024-09-14','2024-09-29'],['2024-12-14','2025-01-26']],
+    2025:[['2025-04-05','2025-04-22'],['2025-06-28','2025-07-13'],['2025-09-20','2025-10-05'],['2025-12-13','2026-01-25']],
+    2026:[['2026-04-03','2026-04-19'],['2026-06-27','2026-07-12'],['2026-09-19','2026-10-05'],['2026-12-12','2027-01-26']],
+    2027:[['2027-03-26','2027-04-11'],['2027-06-26','2027-07-11'],['2027-09-18','2027-10-04'],['2027-12-11','2028-01-23']],
+    2028:[['2028-04-01','2028-04-17'],['2028-06-24','2028-07-09'],['2028-09-16','2028-10-02'],['2028-12-09','2029-01-21']],
+    2029:[['2029-03-30','2029-04-15'],['2029-06-23','2029-07-08'],['2029-09-15','2029-10-01'],['2029-12-08','2030-01-26']]
+  };
+  const spillover={
+    2025:['2024-12-14','2025-01-26'],2026:['2025-12-13','2026-01-25'],
+    2027:['2026-12-12','2027-01-26'],2028:['2027-12-11','2028-01-23'],
+    2029:['2028-12-09','2029-01-21']
+  };
+  const ranges=[...(data[year]||[])];
+  if(spillover[year])ranges.push(spillover[year]);
+  ranges.forEach(([s,e])=>{let d=pd(s),end=pd(e);while(d<=end){if(d.getFullYear()===year)breaks[fmt(d)]='QLD 학교 방학';d.setDate(d.getDate()+1);}});
+  return breaks;
+}
+
+/* ── Korean Holidays ── */
+function getKrBase(year){
+  const h={},s=(m,d,n)=>h[`${year}-${p(m)}-${p(d)}`]=n;
+  s(1,1,'신정');s(3,1,'삼일절');s(5,5,'어린이날');s(6,6,'현충일');
+  s(8,15,'광복절');s(10,3,'개천절');s(10,9,'한글날');s(12,25,'성탄절');
+  const seollal={2024:['2024-02-09','2024-02-10','2024-02-11','2024-02-12'],2025:['2025-01-28','2025-01-29','2025-01-30','2025-01-31'],2026:['2026-02-16','2026-02-17','2026-02-18'],2027:['2027-02-05','2027-02-06','2027-02-07'],2028:['2028-01-25','2028-01-26','2028-01-27'],2029:['2029-02-12','2029-02-13','2029-02-14']};
+  (seollal[year]||[]).forEach((d,i)=>h[d]=['설날 전날','설날','설날 다음날','설날 연휴'][Math.min(i,3)]);
+  const buddha={2024:'2024-05-15',2025:'2025-05-05',2026:'2026-05-24',2027:'2027-05-13',2028:'2028-05-02',2029:'2029-05-20'};
+  if(buddha[year])h[buddha[year]]='부처님오신날';
+  const chuseok={2024:['2024-09-16','2024-09-17','2024-09-18','2024-09-19'],2025:['2025-10-05','2025-10-06','2025-10-07','2025-10-08'],2026:['2026-09-24','2026-09-25','2026-09-26','2026-09-27'],2027:['2027-10-14','2027-10-15','2027-10-16','2027-10-17'],2028:['2028-10-02','2028-10-03','2028-10-04','2028-10-05'],2029:['2029-09-21','2029-09-22','2029-09-23','2029-09-24']};
+  (chuseok[year]||[]).forEach((d,i)=>h[d]=['추석 전날','추석','추석 다음날','추석 연휴'][Math.min(i,3)]);
+  return h;
+}
+function getKrSub(year){
+  const base=getKrBase(year),subs={},holSet=new Set(Object.keys(base));
+  Object.keys(base).sort().forEach(key=>{
+    const d=pd(key),dow=d.getDay();
+    if(dow===0||dow===6){
+      let c=new Date(d);c.setDate(c.getDate()+1);
+      while(c.getDay()===0||c.getDay()===6||holSet.has(fmt(c))||subs[fmt(c)])c.setDate(c.getDate()+1);
+      const sub=fmt(c);subs[sub]='대체공휴일 ('+base[key]+')';holSet.add(sub);
+    }
+  });
+  const ov={2025:{'2025-05-06':'대체공휴일 (부처님오신날·어린이날 겹침)'}};
+  if(ov[year])Object.assign(subs,ov[year]);
+  return subs;
+}
+
+/* ── Australian Holidays ── */
+function easter(year){
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),dy=((h+l-7*m+114)%31)+1;
+  const E=new Date(year,mo-1,dy),of=n=>{const x=new Date(E);x.setDate(x.getDate()+n);return fmt(x)};
+  return{good:of(-2),sat:of(-1),sun:of(0),mon:of(1)};
+}
+function nthWd(year,month,nth,dow){
+  const d=new Date(year,month-1,1);let c=0;
+  while(true){if(d.getDay()===dow){c++;if(c===nth)break;}d.setDate(d.getDate()+1);}
+  return fmt(d);
+}
+function getAu(year){
+  const h={},s=(m,d,n)=>h[`${year}-${p(m)}-${p(d)}`]=n;
+  s(1,1,"New Year's Day");
+  let ad=new Date(year,0,26);
+  if(ad.getDay()===0)ad.setDate(27);else if(ad.getDay()===6)ad.setDate(28);
+  h[fmt(ad)]='Australia Day';
+  const E=easter(year);
+  h[E.good]='Good Friday';h[E.sat]='Easter Saturday';h[E.sun]='Easter Sunday';h[E.mon]='Easter Monday';
+  s(4,25,'Anzac Day');
+  h[nthWd(year,5,1,1)]='Labour Day (QLD)';
+  h[nthWd(year,8,3,3)]='Royal Queensland Show';
+  h[nthWd(year,10,1,1)]="King's Birthday (QLD)";
+  s(12,25,'Christmas Day');s(12,26,'Boxing Day');
+  return h;
+}
+
+/* ── UI Controls ── */
+window.changeYear = d=>{ yr+=d; document.getElementById('yearLabel').textContent=yr; render(); };
+window.setMode = m=>{
+  mode=m;
+  ['leave','wfh','ye','loan','clear'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('on',x===m));
+  const t={leave:'💡 날짜를 클릭해서 연차를 표시하세요.',wfh:'🏠 재택근무 날짜를 선택하세요.',ye:'🗓 연말 휴가 날짜를 선택하세요.',loan:'📋 대출 날짜를 선택하세요.',clear:'🗑 선택을 취소할 날짜를 클릭하세요.'};
+  document.getElementById('tipTxt').textContent=t[m];
+};
+
+function showTT(e,txt){
+  const t=document.getElementById('tt');
+  t.textContent=txt;t.style.display='block';
+  t.style.left=(e.clientX-t.offsetWidth/2)+'px';
+  t.style.top=(e.clientY-36)+'px';
+}
+function hideTT(){document.getElementById('tt').style.display='none';}
+
+function toggle(key,blockKr,isWk){
+  if(blockKr||isWk)return;
+  if(mode==='leave'){if(leaveMap[key])delete leaveMap[key];else{leaveMap[key]=1;delete wfhMap[key];delete yeMap[key];delete loanMap[key];}}
+  else if(mode==='wfh'){if(wfhMap[key])delete wfhMap[key];else{wfhMap[key]=1;delete leaveMap[key];delete yeMap[key];delete loanMap[key];}}
+  else if(mode==='ye'){if(yeMap[key])delete yeMap[key];else{yeMap[key]=1;delete leaveMap[key];delete wfhMap[key];delete loanMap[key];}}
+  else if(mode==='loan'){if(loanMap[key])delete loanMap[key];else{loanMap[key]=1;delete leaveMap[key];delete wfhMap[key];delete yeMap[key];}}
+  else{delete leaveMap[key];delete wfhMap[key];delete yeMap[key];delete loanMap[key];}
+  render();scheduleSave();
+}
+
+/* ── Main Calendar Render ── */
+function render(){
+  const krB=getKrBase(yr),krS=getKrSub(yr),auH=getAu(yr);
+  const term=getTermBreaks(yr),todayS=fmt(new Date());
+  const grid=document.getElementById('calGrid');grid.innerHTML='';
+  let tLeave=0,tWfh=0,tYe=0,tLoan=0;
+
+  for(let m=0;m<12;m++){
+    const monthKey=`${yr}-${p(m+1)}`;
+    const card=document.createElement('div');card.className='month-card';
+
+    // Month header + note
+    const top=document.createElement('div');top.className='month-top';
+    const mn=document.createElement('div');mn.className='month-name';
+    mn.textContent=`${yr}년 ${MO[m]}`;top.appendChild(mn);
+    const nr=document.createElement('div');nr.className='month-note-row';
+    const na=document.createElement('textarea');na.className='month-note';na.rows=1;
+    na.placeholder='메모 (가족과 함께하는 날 등...)';
+    na.value=monthNotes[monthKey]||'';
+    na.addEventListener('input',()=>{
+      monthNotes[monthKey]=na.value;
+      scheduleSave();
+    });
+    nr.appendChild(na);top.appendChild(nr);
+    card.appendChild(top);
+
+    const dh=document.createElement('div');dh.className='dh';
+    DY.forEach(d=>{const l=document.createElement('div');l.className='dl';l.textContent=d;dh.appendChild(l);});
+    card.appendChild(dh);
+
+    const dg=document.createElement('div');dg.className='dg';
+    const fd=new Date(yr,m,1).getDay();
+    for(let i=0;i<fd;i++){const e=document.createElement('div');e.className='dc x';dg.appendChild(e);}
+    const dim=new Date(yr,m+1,0).getDate();
+
+    for(let d=1;d<=dim;d++){
+      const key=`${yr}-${p(m+1)}-${p(d)}`;
+      const dow=new Date(yr,m,d).getDay();
+      const isWk=dow===0||dow===6;
+      const isKr=!!krB[key],isSub=!!krS[key],isAu=!!auH[key];
+      const blockKr=isKr||isSub;
+      const isTerm=!!term[key];
+      const isLeave=!!leaveMap[key],isWfh=!!wfhMap[key],isYe=!!yeMap[key],isLoan=!!loanMap[key];
+
+      if(!isWk&&isLeave)tLeave++;
+      if(!isWk&&isWfh)tWfh++;
+      if(!isWk&&isYe)tYe++;
+      if(!isWk&&isLoan)tLoan++;
+
+      const cell=document.createElement('div');cell.className='dc';
+      if(isWk){cell.classList.add('wk');}
+      else if(blockKr){cell.classList.add('ph-kr','nc');}
+      else if(isAu){cell.classList.add('ph-au');}
+      else if(isTerm){cell.classList.add('term');}
+
+      if(!blockKr&&!isWk){
+        if(isLeave)cell.classList.add('act-leave');
+        else if(isWfh)cell.classList.add('act-wfh');
+        else if(isYe)cell.classList.add('act-ye');
+        else if(isLoan)cell.classList.add('act-loan');
+      }
+
+      if(!isWk&&(isLeave||isWfh||isYe||isLoan)){
+        const bar=document.createElement('div');bar.className='abar';
+        bar.style.background=isLeave?'var(--leave)':isWfh?'var(--wfh)':isYe?'var(--ye)':'var(--loan)';
+        cell.appendChild(bar);
+      }
+
+      if(key===todayS)cell.classList.add('today');
+      const dn=document.createElement('div');dn.className='dn';dn.textContent=d;cell.appendChild(dn);
+
+      const parts=[];
+      const holName=krS[key]||krB[key]||auH[key]||(isTerm&&!isWk?'QLD 학교 방학':null);
+      if(holName)parts.push(holName);
+      if(isLeave)parts.push('연차');else if(isWfh)parts.push('재택근무');else if(isYe)parts.push('연말 휴가');else if(isLoan)parts.push('대출');
+      if(parts.length){cell.addEventListener('mouseenter',e=>showTT(e,parts.join(' · ')));cell.addEventListener('mouseleave',hideTT);}
+
+      cell.addEventListener('click',()=>toggle(key,blockKr,isWk));
+      dg.appendChild(cell);
+    }
+    card.appendChild(dg);grid.appendChild(card);
+  }
+
+  const tSub=Object.keys(getKrSub(yr)).length;
+  document.getElementById('usedL').textContent=tLeave;
+  const rem=25-tLeave;
+  const re=document.getElementById('remL');re.textContent=rem;
+  re.className='bal-num '+(rem>10?'g':rem>5?'a':'r');
+  document.getElementById('wfhC').textContent=tWfh;
+  document.getElementById('yeC').textContent=tYe;
+  document.getElementById('loanC').textContent=tLoan;
+  document.getElementById('subC').textContent=tSub;
+}
+
+/* ── Trip Rows ── */
+function renderTripRows(){
+  const cont=document.getElementById('tripRows');
+  cont.innerHTML='';
+  let total=0;
+  tripRows.forEach((row,i)=>{
+    const nights=nightsBetween(row.depart,row.arrive);
+    if(nights)total+=nights;
+    const div=document.createElement('div');div.className='trip-row';
+    div.innerHTML=`
+      <input type="date" class="trip-input" value="${row.depart||''}" placeholder="출발일"
+        onchange="updateTrip(${i},'depart',this.value)">
+      <input type="date" class="trip-input" value="${row.arrive||''}" placeholder="귀국일"
+        onchange="updateTrip(${i},'arrive',this.value)">
+      <div class="trip-nights ${nights?'':'empty'}">${nights?nights+'일':'—'}</div>
+      <input type="text" class="trip-input" value="${row.note||''}" placeholder="메모"
+        onchange="updateTrip(${i},'note',this.value)">
+      <button class="del-row-btn" onclick="deleteTrip(${i})">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>`;
+    cont.appendChild(div);
+  });
+  document.getElementById('tripTotalDays').textContent=total+'일';
+  document.getElementById('s-trip').textContent=total;
+}
+
+window.updateTrip=(i,field,val)=>{
+  tripRows[i][field]=val;
+  renderTripRows();
+  scheduleSave();
+};
+window.deleteTrip=i=>{
+  tripRows.splice(i,1);
+  renderTripRows();
+  scheduleSave();
+};
+window.addTripRow=()=>{
+  tripRows.push({depart:'',arrive:'',note:''});
+  renderTripRows();
+  scheduleSave();
+};
+
+/* ── Summary ── */
+function renderSummary(){
+  const tLeave=Object.keys(leaveMap).length;
+  const tWfh=Object.keys(wfhMap).length;
+  const tYe=Object.keys(yeMap).length;
+  const tLoan=Object.keys(loanMap).length;
+  document.getElementById('s-leave').textContent=tLeave;
+  document.getElementById('s-rem').textContent=25-tLeave;
+  document.getElementById('s-wfh').textContent=tWfh;
+  document.getElementById('s-ye').textContent=tYe;
+  document.getElementById('s-loan').textContent=tLoan;
+
+  const list=document.getElementById('sumList');
+  const all={};
+  Object.keys(leaveMap).forEach(k=>all[k]='leave');
+  Object.keys(wfhMap).forEach(k=>all[k]='wfh');
+  Object.keys(yeMap).forEach(k=>all[k]='ye');
+  Object.keys(loanMap).forEach(k=>all[k]='loan');
+  const sorted=Object.keys(all).sort();
+  if(!sorted.length){list.innerHTML='<div class="empty">아직 선택된 날짜가 없습니다.</div>';return;}
+  const groups=[],labels={leave:'연차',wfh:'재택근무',ye:'연말 휴가',loan:'대출'};
+  let cur=null;
+  sorted.forEach(key=>{
+    const type=all[key];
+    const diff=cur?(pd(key)-pd(cur.end))/86400000:999;
+    if(!cur||cur.type!==type||diff>4){cur={start:key,end:key,type,count:1};groups.push(cur);}
+    else{cur.end=key;cur.count++;}
+  });
+  list.innerHTML='';
+  groups.forEach(g=>{
+    const item=document.createElement('div');item.className='sum-item';
+    const fmtD=k=>{const d=pd(k);return`${d.getMonth()+1}월 ${d.getDate()}일`;};
+    const ds=g.start===g.end?fmtD(g.start):`${fmtD(g.start)} – ${fmtD(g.end)}`;
+    item.innerHTML=`
+      <div class="sum-l">
+        <span class="bdg ${g.type}">${labels[g.type]}</span>
+        <span>${ds}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:9px">
+        <span class="sum-cnt">${g.count}일</span>
+        <button class="xbtn" onclick="removeRange('${g.start}','${g.end}','${g.type}')">×</button>
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+window.removeRange=(start,end,type)=>{
+  let d=pd(start),endD=pd(end);
+  while(d<=endD){
+    const k=fmt(d);
+    if(type==='leave')delete leaveMap[k];
+    else if(type==='wfh')delete wfhMap[k];
+    else if(type==='ye')delete yeMap[k];
+    else delete loanMap[k];
+    d.setDate(d.getDate()+1);
+  }
+  render();renderSummary();scheduleSave();
+};
+
+loadData();
+</script>
+</body>
+</html>
